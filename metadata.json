@@ -1,0 +1,7 @@
+{
+  "name": "Verbo",
+  "description": "A debate platform where users can discover topics, contribute arguments, and get AI-powered fact-checking with source grounding.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
