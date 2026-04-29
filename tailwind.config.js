@@ -74,6 +74,17 @@ export default {
         12: '12px',
         16: '16px',
       },
+      // Chunk #2 — animation utilities. Keyframes are defined in index.css
+      // (the verify-shimmer gradient uses color-mix(in oklch, ...), which
+      // doesn't compose cleanly through tailwind config), so we only wire
+      // the timing here. Primitives apply via `animate-*` className.
+      animation: {
+        'verify-shimmer': 'verify-shimmer 2.4s linear infinite',
+        'verify-dot': 'verify-spin-dot 1.4s ease-in-out infinite',
+        'pulse-soft': 'pulse-soft 1.4s ease-in-out infinite',
+        'slide-in-right': 'slide-in-right 220ms ease-out',
+        'fade-in': 'fade-in 200ms ease-out',
+      },
     },
   },
   plugins: [],

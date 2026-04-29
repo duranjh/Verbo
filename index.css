@@ -65,6 +65,44 @@
   }
 }
 
+/* Chunk #2 — animations used by VerifyingPill (shimmer + 3-dot pulse),
+   MetaPill kind="live" (pulse-soft dot), Sidebar (slide-in), Modal (fade-in).
+   Keyframes live here because the shimmer's color-mix(in oklch, ...) gradient
+   is awkward to express through tailwind.config. Tailwind config registers
+   the matching `animation` utilities (animate-verify-shimmer, etc.). */
+@keyframes verify-shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes verify-spin-dot {
+  0%, 100% { transform: scale(.7); opacity: .4; }
+  50%      { transform: scale(1);  opacity: 1;  }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .55; }
+}
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@layer components {
+  .verify-shimmer-bg {
+    background-image: linear-gradient(
+      90deg,
+      var(--verify-bg) 0%,
+      color-mix(in oklch, var(--verify-bg) 70%, white) 50%,
+      var(--verify-bg) 100%
+    );
+    background-size: 200% 100%;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
