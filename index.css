@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Stage 1 design tokens — copied verbatim from design/v1/design-system.html.
+   Light is the default; .theme-dark on <html> swaps to the dark token set. */
+:root {
+  --cream: #FAF7F2;
+  --cream-2: #F2EDE4;
+  --cream-3: #E8E1D4;
+  --ink: #1B1714;
+  --ink-2: #3A332D;
+  --ink-3: #6B6258;
+  --ink-4: #9C9388;
+  --rule: #E2DACB;
+  --rule-soft: #EDE6D8;
+  --oxford: #1E3A8A;
+  --oxford-2: #2A4BAA;
+  --editorial-red: #B91C1C;
+  --evergreen: #15803D;
+  --stance-for: var(--oxford);
+  --stance-against: #9F1239;
+  --stance-neutral: #6B6258;
+  --r-true-bg: #DCEFE0; --r-true-fg: #14532D; --r-true-bd: #BFE0C8;
+  --r-stt-bg: #EAF3D9;  --r-stt-fg: #3F6212;  --r-stt-bd: #D4E5B7;
+  --r-unv-bg: #ECE6D8;  --r-unv-fg: #57534E;  --r-unv-bd: #D9D0BD;
+  --r-mis-bg: #FBE7CC;  --r-mis-fg: #9A3412;  --r-mis-bd: #F2D2A6;
+  --r-fls-bg: #F8D7D3;  --r-fls-fg: #991B1B;  --r-fls-bd: #EFB7B0;
+  --r-unr-bg: #E1E5EA;  --r-unr-fg: #475569;  --r-unr-bd: #C9D1DA;
+  --verify-bg: #E5E9F4; --verify-fg: #1E3A8A; --verify-bd: #C8D1ED;
+}
+
+.theme-dark {
+  --cream: #15110E;
+  --cream-2: #1E1916;
+  --cream-3: #28221E;
+  --ink: #F2EBDF;
+  --ink-2: #D6CCBC;
+  --ink-3: #9C9388;
+  --ink-4: #6B6258;
+  --rule: #2E2823;
+  --rule-soft: #25201C;
+  --oxford: #93B0FF;
+  --oxford-2: #B7C9FF;
+  --editorial-red: #F87171;
+  --evergreen: #4ADE80;
+  --stance-for: var(--oxford);
+  --stance-against: #FB7185;
+  --stance-neutral: #9C9388;
+  --r-true-bg: #0F2F1E; --r-true-fg: #86E0A4; --r-true-bd: #1E4A35;
+  --r-stt-bg: #1E2A12;  --r-stt-fg: #B8DB7A;  --r-stt-bd: #344A1F;
+  --r-unv-bg: #2A2521;  --r-unv-fg: #BCB1A0;  --r-unv-bd: #3F3933;
+  --r-mis-bg: #38220E;  --r-mis-fg: #F4B271;  --r-mis-bd: #553620;
+  --r-fls-bg: #3A1818;  --r-fls-fg: #F49490;  --r-fls-bd: #5A2727;
+  --r-unr-bg: #1F2530;  --r-unr-fg: #94A3B8;  --r-unr-bd: #2F3845;
+  --verify-bg: #182246; --verify-fg: #B7C9FF; --verify-bd: #2B3A75;
+}
+
+@layer base {
+  body {
+    @apply bg-cream font-sans text-ink antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-serif;
+  }
+}
+
+/* Chunk #2 — animations used by VerifyingPill (shimmer + 3-dot pulse),
+   MetaPill kind="live" (pulse-soft dot), Sidebar (slide-in), Modal (fade-in).
+   Keyframes live here because the shimmer's color-mix(in oklch, ...) gradient
+   is awkward to express through tailwind.config. Tailwind config registers
+   the matching `animation` utilities (animate-verify-shimmer, etc.). */
+@keyframes verify-shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes verify-spin-dot {
+  0%, 100% { transform: scale(.7); opacity: .4; }
+  50%      { transform: scale(1);  opacity: 1;  }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .55; }
+}
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@layer components {
+  .verify-shimmer-bg {
+    background-image: linear-gradient(
+      90deg,
+      var(--verify-bg) 0%,
+      color-mix(in oklch, var(--verify-bg) 70%, white) 50%,
+      var(--verify-bg) 100%
+    );
+    background-size: 200% 100%;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--cream-2);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-4);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-3);
+}
