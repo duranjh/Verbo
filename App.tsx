@@ -7,8 +7,12 @@ import { CreateTopicModal } from './components/CreateTopicModal';
 import { ManageParticipantsModal } from './components/ManageParticipantsModal';
 import { NotificationSidebar } from './components/NotificationSidebar';
 import { AccountSidebar } from './components/AccountSidebar';
+import { TopAppBar } from './components/TopAppBar';
+import { DiscoverRail } from './components/home/DiscoverRail';
+import { MagazineGrid } from './components/home/MagazineGrid';
+import { MobileTabBar } from './components/ui';
 import { Topic, Comment, Stance, FactRating, DebateType, PrivacyStatus, UserRole, Notification, UserProfile } from './types';
-import { IconSearch, IconBell, IconUser, IconSparkles, IconChevronRight, IconClose, IconStar, IconArrowLeft } from './components/Icons';
+import { IconSearch, IconBell, IconUser, IconSparkles, IconChevronRight, IconClose, IconStar, IconArrowLeft, IconAdd, IconHome } from './components/Icons';
 import { Toast } from './components/Toast';
 import { searchDebates } from './services/gemini';
 
@@ -148,17 +152,19 @@ const MOCK_TOPICS: Topic[] = [
   {
     id: '1',
     title: 'Universal Basic Income (UBI) is necessary for the future economy',
-    description: 'With the rise of automation and AI, traditional jobs are disappearing. UBI proposes a fixed income for every citizen regardless of status.',
+    description: 'With the rise of automation and AI, traditional jobs are disappearing. UBI proposes a fixed income for every citizen regardless of status. Trials in Finland, Stockton CA, and Kenya show diverging outcomes.',
     author: 'future_economist',
     createdAt: Date.now() - 100000000,
-    tags: ['Economics', 'Policy', 'Future of Work'],
+    tags: ['Economics', 'Automation', 'Policy'],
     stats: calculateTopicStats(MOCK_COMMENTS['1'] || []),
     type: DebateType.OPEN,
     format: 'CHAT',
     privacy: PrivacyStatus.PUBLIC,
     isAgeRestricted: false,
     areAiToolsEnabled: true,
-    trendingScore: 850
+    trendingScore: 980,
+    authorOccupation: 'Economist',
+    authorVerified: false,
   },
   {
     id: '2',
@@ -168,13 +174,13 @@ const MOCK_TOPICS: Topic[] = [
     createdAt: Date.now() - 50000000,
     tags: ['Work', 'Rights', 'Lifestyle'],
     stats: { for: 450, against: 32, neutral: 5 },
-    type: DebateType.TIMED, // Changed to TIMED for demo
+    type: DebateType.TIMED,
     format: 'CHAT',
-    closesAt: Date.now() + 86400000 * 5, // Closes in 5 days
+    closesAt: Date.now() + 86400000 * 5,
     privacy: PrivacyStatus.PUBLIC,
-    isAgeRestricted: true, // Changed to 18+ for demo
+    isAgeRestricted: true,
     areAiToolsEnabled: true,
-    trendingScore: 980 // Most trending
+    trendingScore: 920,
   },
   {
     id: '3',
@@ -183,14 +189,79 @@ const MOCK_TOPICS: Topic[] = [
     author: 'atom_eve',
     createdAt: Date.now() - 20000000,
     tags: ['Energy', 'Climate', 'Science'],
-    stats: { for: 89, against: 112, neutral: 45 },
+    stats: { for: 289, against: 312, neutral: 45 },
     type: DebateType.OPEN,
     format: 'CHAT',
     privacy: PrivacyStatus.PUBLIC,
     isAgeRestricted: false,
     areAiToolsEnabled: true,
-    trendingScore: 420
-  }
+    trendingScore: 420,
+  },
+  {
+    id: '4',
+    title: 'Should governments regulate frontier AI development?',
+    description: 'A debate on whether the existential-risk framing justifies treating frontier AI labs as critical infrastructure subject to licensure, inspection, and capability disclosure. Includes economists, AI safety researchers, and policy scholars.',
+    author: 'sarah_chen',
+    createdAt: Date.now() - 86400000 * 1,
+    tags: ['AI Policy', 'Regulation', 'Existential Risk'],
+    stats: { for: 847, against: 412, neutral: 138 },
+    type: DebateType.TIMED,
+    format: 'CHAT',
+    closesAt: Date.now() + 86400000 * 2 + 1000 * 60 * 60 * 4,
+    privacy: PrivacyStatus.PUBLIC,
+    isAgeRestricted: false,
+    areAiToolsEnabled: true,
+    trendingScore: 1480,
+    authorOccupation: 'Economist',
+    authorVerified: true,
+  },
+  {
+    id: '5',
+    title: 'Are private space companies a net-positive for public science?',
+    description: 'Falcon-9 reuse cut launch costs 17×, but agency budgets and basic-research priorities have been quietly displaced.',
+    author: 'orbital_dan',
+    createdAt: Date.now() - 90000000,
+    tags: ['Space', 'Science Policy', 'Industry'],
+    stats: { for: 438, against: 356, neutral: 64 },
+    type: DebateType.OPEN,
+    format: 'CHAT',
+    privacy: PrivacyStatus.PUBLIC,
+    isAgeRestricted: true,
+    areAiToolsEnabled: true,
+    trendingScore: 720,
+  },
+  {
+    id: '6',
+    title: 'Should social media platforms be liable for misinformation they amplify?',
+    description: 'Section 230 reform proposals have re-emerged with bipartisan support, but the carve-outs differ on algorithmic amplification.',
+    author: 'mira_amari',
+    createdAt: Date.now() - 110000000,
+    tags: ['Tech Policy', 'Free Speech', 'Section 230'],
+    stats: { for: 523, against: 478, neutral: 91 },
+    type: DebateType.TIMED,
+    format: 'CHAT',
+    closesAt: Date.now() + 86400000 * 3,
+    privacy: PrivacyStatus.PUBLIC,
+    isAgeRestricted: false,
+    areAiToolsEnabled: true,
+    trendingScore: 645,
+  },
+  {
+    id: '7',
+    title: 'Has remote work permanently changed urban economies?',
+    description: 'Office vacancy in San Francisco hit 36.5% in Q1 2026, while suburban municipalities report a 14% rise in retail receipts.',
+    author: 'urban_planner',
+    createdAt: Date.now() - 240000000,
+    tags: ['Urban Policy', 'Labor', 'Real Estate'],
+    stats: { for: 389, against: 271, neutral: 52 },
+    type: DebateType.TIMED,
+    format: 'CHAT',
+    closesAt: Date.now() - 86400000 * 2,
+    privacy: PrivacyStatus.PUBLIC,
+    isAgeRestricted: false,
+    areAiToolsEnabled: true,
+    trendingScore: 540,
+  },
 ];
 
 const MOCK_NOTIFICATIONS: Notification[] = [
@@ -933,6 +1004,10 @@ const App: React.FC = () => {
   const trendingOpenTopics = sortedTopics.filter(t => t.type === DebateType.OPEN);
   const trendingTimedTopics = sortedTopics.filter(t => t.type === DebateType.TIMED);
 
+  // Magazine-grid lead/standard split for the redesigned home feed.
+  const magazineFeaturedTopic = sortedTopics[0];
+  const magazineStandardTopics = sortedTopics.slice(1);
+
   // Check if Explore tab is active (including sub-views)
   const isExploreActive = ['EXPLORE', 'EXPLORE_TAGS', 'EXPLORE_OPEN', 'EXPLORE_TIMED'].includes(viewFilter);
   // Check if Trending tab is active (including sub-views)
@@ -988,7 +1063,7 @@ const App: React.FC = () => {
       />
 
       {activeTopic ? (
-        <DebateView 
+        <DebateView
           topic={activeTopic}
           comments={comments[activeTopic.id] || []}
           onAddComment={handleAddComment}
@@ -1004,165 +1079,106 @@ const App: React.FC = () => {
           onOpenProfile={() => setIsAccountSidebarOpen(true)}
         />
       ) : (
-        <div className="max-w-[2400px] mx-auto min-h-screen flex flex-col bg-slate-50 shadow-2xl border-x border-slate-200">
-          <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-            <div className="p-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-black text-white p-2 rounded-lg">
-                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                </div>
-                <span className="text-2xl font-bold tracking-tight">Verbo</span>
-              </div>
-              <div className="relative hidden md:block w-96 group">
-                <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <input 
-                  ref={searchInputRef}
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      if (e.target.value.length === 0) {
-                          setAppliedSearchQuery('');
-                          setIsSearchDropdownOpen(false);
-                      }
-                  }}
-                  onFocus={() => {
-                      if (searchQuery.length > 2) setIsSearchDropdownOpen(true);
-                  }}
-                  onKeyDown={handleSearchKeyDown}
-                  placeholder="Find a topic to debate..." 
-                  className="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-                
-                {/* Search Dropdown */}
-                {isSearchDropdownOpen && (
-                    <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsSearchDropdownOpen(false)}></div>
-                    <div className="absolute top-full left-0 w-full bg-white shadow-xl rounded-xl border border-slate-200 mt-2 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        {isAiSearching ? (
-                            <div className="p-4 flex items-center justify-center gap-2 text-slate-500 text-sm">
-                                <IconSparkles className="w-4 h-4 animate-spin text-indigo-500" />
-                                Finding relevant debates...
-                            </div>
-                        ) : (
-                            <div className="py-2">
-                                {aiSearchResults.exactMatch && (
-                                    <div className="mb-2">
-                                        <div className="px-4 py-1 text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1">
-                                            <IconSparkles className="w-3 h-3" /> Best Match
-                                        </div>
-                                        <div 
-                                            onClick={() => handleTopicSelect(aiSearchResults.exactMatch!)}
-                                            className="px-4 py-3 hover:bg-indigo-50 cursor-pointer transition-colors"
-                                        >
-                                            <h4 className="font-bold text-slate-800 text-sm mb-0.5">{aiSearchResults.exactMatch.title}</h4>
-                                            <p className="text-xs text-slate-500 line-clamp-1">{aiSearchResults.exactMatch.description}</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {aiSearchResults.similarMatches.length > 0 && (
-                                    <div className="mb-2">
-                                        <div className="px-4 py-1 text-xs font-bold text-slate-400 uppercase tracking-wider border-t border-slate-100 mt-1 pt-2">
-                                            Similar Debates
-                                        </div>
-                                        {aiSearchResults.similarMatches.map(topic => (
-                                            <div 
-                                                key={topic.id}
-                                                onClick={() => handleTopicSelect(topic)}
-                                                className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer transition-colors"
-                                            >
-                                                <h4 className="font-bold text-slate-700 text-sm mb-0.5">{topic.title}</h4>
-                                                <div className="flex gap-2">
-                                                    {topic.tags?.slice(0, 2).map(tag => (
-                                                        <span key={tag} className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{tag}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {!aiSearchResults.exactMatch && aiSearchResults.similarMatches.length === 0 && searchQuery.length > 2 && (
-                                    <div className="px-4 py-3 text-sm text-slate-500 italic text-center">
-                                        No debates found matching "{searchQuery}"
-                                    </div>
-                                )}
-
-                                <div className="border-t border-slate-100 mt-1 pt-1">
-                                    <button 
-                                        onClick={handleSeeAllResults}
-                                        className="w-full text-left px-4 py-3 text-sm font-bold text-indigo-600 hover:bg-slate-50 flex items-center justify-between group"
-                                    >
-                                        See all results for "{searchQuery}"
-                                        <IconChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+        <div className="max-w-[2400px] mx-auto min-h-screen flex flex-col bg-cream shadow-2xl border-x border-rule">
+          <TopAppBar
+            userInitials={`${userProfile.firstName[0] ?? ''}${userProfile.lastName[0] ?? ''}`.toUpperCase() || '??'}
+            userColorIndex={1}
+            userVerified={!!userProfile.isOccupationVerified}
+            unreadCount={unreadCount}
+            searchQuery={searchQuery}
+            onSearchChange={(next) => {
+              setSearchQuery(next);
+              if (next.length === 0) {
+                setAppliedSearchQuery('');
+                setIsSearchDropdownOpen(false);
+              }
+            }}
+            onSearchFocus={() => {
+              if (searchQuery.length > 2) setIsSearchDropdownOpen(true);
+            }}
+            onSearchKeyDown={handleSearchKeyDown}
+            searchInputRef={searchInputRef}
+            searchDropdown={isSearchDropdownOpen ? (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsSearchDropdownOpen(false)}></div>
+                <div className="absolute top-full left-0 w-full bg-white shadow-xl rounded-xl border border-slate-200 mt-2 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  {isAiSearching ? (
+                    <div className="p-4 flex items-center justify-center gap-2 text-slate-500 text-sm">
+                      <IconSparkles className="w-4 h-4 animate-spin text-indigo-500" />
+                      Finding relevant debates...
                     </div>
-                    </>
-                )}
-              </div>
-              <div className="flex items-center gap-4">
-                <button 
-                    onClick={() => setIsNotificationSidebarOpen(true)}
-                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors relative"
-                >
-                    <IconBell className="w-5 h-5" />
-                    {unreadCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                    )}
-                </button>
-                <button 
-                    onClick={() => setIsAccountSidebarOpen(true)}
-                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-                >
-                    <IconUser className="w-5 h-5" />
-                </button>
-                <div className="h-6 w-px bg-slate-200 mx-1"></div>
-                <button 
-                  onClick={() => setIsCreatingTopic(true)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-full text-sm font-semibold transition-colors shadow-lg shadow-indigo-200"
-                >
-                  New Debate
-                </button>
-              </div>
-            </div>
-            {/* Sub-header / Filters */}
-            <div className="px-6 flex items-center justify-between border-b border-slate-200">
-                <div className="flex gap-8 text-sm font-medium text-slate-500 h-full">
-                  <button 
-                    onClick={() => handleSwitchView('TRENDING')}
-                    className={`py-4 border-b-2 transition-colors ${isTrendingActive ? 'text-indigo-600 border-indigo-600' : 'border-transparent hover:text-slate-800'}`}
-                  >
-                    Trending
-                  </button>
-                  <button 
-                    onClick={() => handleSwitchView('MY_DEBATES')}
-                    className={`py-4 border-b-2 transition-colors ${viewFilter === 'MY_DEBATES' ? 'text-indigo-600 border-indigo-600' : 'border-transparent hover:text-slate-800'}`}
-                  >
-                    My Debates
-                  </button>
-                  <button 
-                    onClick={() => handleSwitchView('EXPLORE')}
-                    className={`py-4 border-b-2 transition-colors ${isExploreActive ? 'text-indigo-600 border-indigo-600' : 'border-transparent hover:text-slate-800'}`}
-                  >
-                    Explore
-                  </button>
+                  ) : (
+                    <div className="py-2">
+                      {aiSearchResults.exactMatch && (
+                        <div className="mb-2">
+                          <div className="px-4 py-1 text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1">
+                            <IconSparkles className="w-3 h-3" /> Best Match
+                          </div>
+                          <div
+                            onClick={() => handleTopicSelect(aiSearchResults.exactMatch!)}
+                            className="px-4 py-3 hover:bg-indigo-50 cursor-pointer transition-colors"
+                          >
+                            <h4 className="font-bold text-slate-800 text-sm mb-0.5">{aiSearchResults.exactMatch.title}</h4>
+                            <p className="text-xs text-slate-500 line-clamp-1">{aiSearchResults.exactMatch.description}</p>
+                          </div>
+                        </div>
+                      )}
+                      {aiSearchResults.similarMatches.length > 0 && (
+                        <div className="mb-2">
+                          <div className="px-4 py-1 text-xs font-bold text-slate-400 uppercase tracking-wider border-t border-slate-100 mt-1 pt-2">
+                            Similar Debates
+                          </div>
+                          {aiSearchResults.similarMatches.map(topic => (
+                            <div
+                              key={topic.id}
+                              onClick={() => handleTopicSelect(topic)}
+                              className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer transition-colors"
+                            >
+                              <h4 className="font-bold text-slate-700 text-sm mb-0.5">{topic.title}</h4>
+                              <div className="flex gap-2">
+                                {topic.tags?.slice(0, 2).map(tag => (
+                                  <span key={tag} className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{tag}</span>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {!aiSearchResults.exactMatch && aiSearchResults.similarMatches.length === 0 && searchQuery.length > 2 && (
+                        <div className="px-4 py-3 text-sm text-slate-500 italic text-center">
+                          No debates found matching "{searchQuery}"
+                        </div>
+                      )}
+                      <div className="border-t border-slate-100 mt-1 pt-1">
+                        <button
+                          onClick={handleSeeAllResults}
+                          className="w-full text-left px-4 py-3 text-sm font-bold text-indigo-600 hover:bg-slate-50 flex items-center justify-between group"
+                        >
+                          See all results for "{searchQuery}"
+                          <IconChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                
-                <button 
-                    onClick={() => handleSwitchView('SAVED')}
-                    className={`py-4 border-b-2 text-sm font-medium transition-colors flex items-center gap-2 ${viewFilter === 'SAVED' ? 'text-indigo-600 border-indigo-600' : 'text-slate-500 border-transparent hover:text-slate-800'}`}
-                >
-                    <IconStar className={`w-4 h-4 ${viewFilter === 'SAVED' ? 'fill-current' : ''}`} />
-                    Saved Debates
-                </button>
-            </div>
-          </header>
+              </>
+            ) : null}
+            onCreateDebate={() => setIsCreatingTopic(true)}
+            onOpenNotifications={() => setIsNotificationSidebarOpen(true)}
+            onOpenAccount={() => setIsAccountSidebarOpen(true)}
+          />
 
-          <main className="flex-1 bg-slate-50">
+          <main className="flex-1 bg-cream pb-20 md:pb-0">
+            {!appliedSearchQuery && viewFilter === 'TRENDING' ? (
+              <>
+                <DiscoverRail topics={topics} onSelectTopic={handleTopicSelect} />
+                <MagazineGrid
+                  topics={magazineStandardTopics}
+                  featured={magazineFeaturedTopic}
+                  onSelectTopic={handleTopicSelect}
+                />
+              </>
+            ) : (
             <div className="p-6">
                <h2 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2">
                    {viewFilter !== 'EXPLORE' && isExploreActive && (
@@ -1469,7 +1485,20 @@ const App: React.FC = () => {
                    </>
                )}
             </div>
+            )}
           </main>
+
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-20">
+            <MobileTabBar
+              items={[
+                { key: 'home', icon: <IconHome className="h-5 w-5" />, label: 'Home', active: true },
+                { key: 'search', icon: <IconSearch className="h-5 w-5" />, label: 'Search', onClick: () => searchInputRef.current?.focus() },
+                { key: 'alerts', icon: <IconBell className="h-5 w-5" />, label: 'Alerts', onClick: () => setIsNotificationSidebarOpen(true) },
+                { key: 'account', icon: <IconUser className="h-5 w-5" />, label: 'Account', onClick: () => setIsAccountSidebarOpen(true) },
+              ]}
+              fab={{ icon: <IconAdd className="h-5 w-5" />, onClick: () => setIsCreatingTopic(true), ariaLabel: 'Compose new debate' }}
+            />
+          </div>
         </div>
       )}
 
