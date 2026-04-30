@@ -6,6 +6,7 @@ interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
   onChange: (next: string) => void;
   aiTagged?: boolean;
   onClear?: () => void;
+  inputRef?: React.RefObject<HTMLInputElement>;
 }
 
 export const SearchInput: React.FC<SearchInputProps> = ({
@@ -13,6 +14,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   onChange,
   aiTagged = false,
   onClear,
+  inputRef,
   id,
   placeholder = 'Search',
   className = '',
@@ -36,6 +38,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         <IconSearch className="h-4 w-4" />
       </span>
       <input
+        ref={inputRef}
         id={inputId}
         type="search"
         value={value}

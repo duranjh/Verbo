@@ -127,9 +127,14 @@ export interface Topic {
   areAiToolsEnabled?: boolean; // Controls availability of Enhancer/Suggestions for participants
 
   // Mocking participant management
-  participants?: Participant[]; 
+  participants?: Participant[];
   isEdited?: boolean;
   trendingScore?: number; // Represents activity, clicks, and search volume in last 24h
+
+  // Optional author profile fields surfaced on the magazine-grid lead card byline.
+  // Soft client-side metadata; not authoritative — when a real backend lands, swap to live profile lookup.
+  authorOccupation?: string;
+  authorVerified?: boolean;
 }
 
 export interface ResearchItem {

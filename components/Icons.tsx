@@ -52,7 +52,8 @@ import {
   CheckCheck,
   LogOut,
   CreditCard,
-  Camera
+  Camera,
+  Home
 } from 'lucide-react';
 
 export const IconFor = ({ className }: { className?: string }) => <ThumbsUp className={className} />;
@@ -110,3 +111,4 @@ export const IconCheckAll = ({ className }: { className?: string }) => <CheckChe
 export const IconLogOut = ({ className }: { className?: string }) => <LogOut className={className} />;
 export const IconCreditCard = ({ className }: { className?: string }) => <CreditCard className={className} />;
 export const IconCamera = ({ className }: { className?: string }) => <Camera className={className} />;
+export const IconHome = ({ className }: { className?: string }) => <Home className={className} />;
