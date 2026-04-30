@@ -344,6 +344,7 @@ const App: React.FC = () => {
   const [topics, setTopics] = useState<Topic[]>(MOCK_TOPICS);
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
   const [comments, setComments] = useState(MOCK_COMMENTS);
+  const [consensusByTopic, setConsensusByTopic] = useState<Record<string, { text: string; generatedAt: number }>>({});
   
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -651,14 +652,18 @@ const App: React.FC = () => {
     });
   };
 
+  const isValidRating = (rating: FactRating | undefined): boolean =>
+    rating !== undefined && rating !== FactRating.UNRELATED && rating !== FactRating.NEUTRAL;
+
   const handleAddComment = (comment: Comment) => {
     if (!activeTopic) return;
-    
-    // Check if new before updating state
-    const isNew = !comments[activeTopic.id]?.some(c => c.id === comment.id);
 
-    // If new comment, enhance it with user profile verification status and occupation title if visible
-    if (isNew && comment.author === 'You') {
+    const prevTopicComments = comments[activeTopic.id] || [];
+    const prevComment = prevTopicComments.find(c => c.id === comment.id);
+    const isFirstAdd = !prevComment;
+
+    // Enrich a brand-new "You" comment with profile metadata
+    if (isFirstAdd && comment.author === 'You') {
         comment.isUserVerified = userProfile.isOccupationVerified;
         if (userProfile.isOccupationVisible) {
             comment.userTitle = userProfile.occupation;
@@ -666,16 +671,14 @@ const App: React.FC = () => {
     }
 
     setComments(prev => {
-      let topicComments = prev[activeTopic.id] || [];
+      const topicComments = prev[activeTopic.id] || [];
       const index = topicComments.findIndex(c => c.id === comment.id);
-      
+
       let newTopicComments;
       if (index !== -1) {
-        // Update existing comment
         newTopicComments = [...topicComments];
         newTopicComments[index] = comment;
       } else {
-        // Add new comment
         newTopicComments = [...topicComments, comment];
       }
 
@@ -684,50 +687,69 @@ const App: React.FC = () => {
         [activeTopic.id]: newTopicComments
       };
 
-      // Sync linked contents if this is an update
       if (index !== -1 && comment.linkedContentId) {
           newState = syncLinkedComments(activeTopic.id, comment, newState);
       }
-      
+
       return newState;
     });
 
-    // Update Stats if it's a new comment AND counts as valid (not unrelated/neutral)
-    if (isNew) {
-         const rating = comment.aiAnalysis?.rating;
-         const isValid = rating !== undefined && rating !== FactRating.UNRELATED && rating !== FactRating.NEUTRAL;
-         
-         if (isValid) {
-             setTopics(prevTopics => prevTopics.map(t => {
-                if (t.id === activeTopic.id) {
-                    const newStats = { ...t.stats };
-                    if (comment.stance === Stance.FOR) newStats.for++;
-                    else if (comment.stance === Stance.AGAINST) newStats.against++;
-                    else newStats.neutral++; // This case would only hit if stance is neutral but rating is Valid (e.g. TRUE/FALSE) which is possible
-                    
-                    // Increment analytics simulation: +5 score for adding an argument
-                    const newScore = (t.trendingScore || 0) + 5;
-                    return { ...t, stats: newStats, trendingScore: newScore };
-                }
-                return t;
-            }));
-         }
+    // Three-phase stats delta
+    const prevValid = isValidRating(prevComment?.aiAnalysis?.rating);
+    const nextValid = isValidRating(comment.aiAnalysis?.rating);
+
+    const bumpStance = (stats: Topic['stats'], stance: Stance, delta: number) => {
+        if (stance === Stance.FOR) stats.for = Math.max(0, stats.for + delta);
+        else if (stance === Stance.AGAINST) stats.against = Math.max(0, stats.against + delta);
+        else stats.neutral = Math.max(0, stats.neutral + delta);
+    };
+
+    let statsChanged = false;
+    let scoreBump = 0;
+
+    if (!prevValid && nextValid) {
+        statsChanged = true;
+        scoreBump = 5;
+    } else if (prevValid && !nextValid) {
+        statsChanged = true;
+    } else if (prevValid && nextValid && prevComment && prevComment.stance !== comment.stance) {
+        statsChanged = true;
     }
 
-    // Notification Logic for Starred Topics
-    if (starredTopics.has(activeTopic.id)) {
-        const rating = comment.aiAnalysis?.rating;
-        const isSignificant = rating !== undefined && rating !== FactRating.UNRELATED && rating !== FactRating.NEUTRAL;
-
-        if (isSignificant) {
-            setTimeout(() => {
-                setNotification({ 
-                    message: `New argument posted in: ${activeTopic.title}`, 
-                    type: 'info' 
-                });
-            }, 1500);
-        }
+    if (statsChanged) {
+        setTopics(prevTopics => prevTopics.map(t => {
+            if (t.id !== activeTopic.id) return t;
+            const newStats = { ...t.stats };
+            if (prevValid && prevComment) bumpStance(newStats, prevComment.stance, -1);
+            if (nextValid) bumpStance(newStats, comment.stance, +1);
+            return { ...t, stats: newStats, trendingScore: (t.trendingScore || 0) + scoreBump };
+        }));
     }
+
+    // Notify only when verification first resolves significantly on a starred topic
+    if (!prevValid && nextValid && starredTopics.has(activeTopic.id)) {
+        setTimeout(() => {
+            setNotification({
+                message: `New argument posted in: ${activeTopic.title}`,
+                type: 'info'
+            });
+        }, 1500);
+    }
+  };
+
+  const handleSetConsensus = (topicId: string, text: string) => {
+    setConsensusByTopic(prev => ({
+        ...prev,
+        [topicId]: { text, generatedAt: Date.now() }
+    }));
+  };
+
+  const handleSwitchCommentStance = (commentId: string, newStance: Stance) => {
+    if (!activeTopic) return;
+    const topicComments = comments[activeTopic.id] || [];
+    const target = topicComments.find(c => c.id === commentId);
+    if (!target || target.stance === newStance) return;
+    handleAddComment({ ...target, stance: newStance });
   };
 
   const handleLikeComment = (commentId: string) => {
@@ -1077,6 +1099,9 @@ const App: React.FC = () => {
           onOpenNotifications={() => setIsNotificationSidebarOpen(true)}
           unreadNotificationCount={unreadCount}
           onOpenProfile={() => setIsAccountSidebarOpen(true)}
+          consensusCache={consensusByTopic[activeTopic.id]}
+          onCacheConsensus={handleSetConsensus}
+          onSwitchStance={handleSwitchCommentStance}
         />
       ) : (
         <div className="max-w-[2400px] mx-auto min-h-screen flex flex-col bg-cream shadow-2xl border-x border-rule">
