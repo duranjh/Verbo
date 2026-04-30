@@ -1,21 +1,18 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Topic, Comment, Stance, ResearchItem, ReportData, TopicResearchData } from '../types';
-import { generateTopicResearch } from '../services/gemini';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Topic, Comment, Stance, ReportData, ResearchSynthesis, TopicResearchData } from '../types';
+import { generateResearchSynthesis, generateTopicResearch } from '../services/gemini';
+import { aggregateSources } from '../lib/aggregateSources';
 import {
   IconBell,
-  IconBook,
-  IconExternal,
   IconFeedback,
   IconFlag,
-  IconGlobe,
   IconLayoutList,
-  IconPlus,
-  IconSparkles,
   IconUser,
 } from './Icons';
 import { Tabs, Toast } from './ui';
 import { DebateHeader } from './debate/DebateHeader';
 import { DebateArguments } from './debate/DebateArguments';
+import { ResearchTab } from './debate/ResearchTab';
 import { FeedbackModal } from './FeedbackModal';
 import { ReportModal } from './ReportModal';
 
@@ -37,6 +34,8 @@ interface DebateViewProps {
   onOpenProfile: () => void;
   consensusCache?: { text: string; generatedAt: number };
   onCacheConsensus: (topicId: string, text: string) => void;
+  synthesisCache?: { synthesis: ResearchSynthesis; generatedAt: number };
+  onCacheSynthesis: (topicId: string, synthesis: ResearchSynthesis) => void;
   onSwitchStance: (commentId: string, newStance: Stance) => void;
 }
 
@@ -56,6 +55,8 @@ export const DebateView: React.FC<DebateViewProps> = ({
   onOpenProfile,
   consensusCache,
   onCacheConsensus,
+  synthesisCache,
+  onCacheSynthesis,
   onSwitchStance,
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('ARGUMENTS');
@@ -65,10 +66,12 @@ export const DebateView: React.FC<DebateViewProps> = ({
     { show: false, message: '', type: 'info' }
   );
 
-  // Research tab state — preserved from original DebateView (chunk #5 will rebuild this)
+  // Research tab state — chunk #5
   const [researchData, setResearchData] = useState<TopicResearchData | null>(null);
   const [isLoadingResearch, setIsLoadingResearch] = useState(false);
   const [isLoadingMoreResearch, setIsLoadingMoreResearch] = useState(false);
+  const [isLoadingSynthesis, setIsLoadingSynthesis] = useState(false);
+  const [readingListByTopic, setReadingListByTopic] = useState<Record<string, string[]>>({});
 
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
@@ -85,7 +88,8 @@ export const DebateView: React.FC<DebateViewProps> = ({
     return () => window.clearTimeout(timer);
   }, [toast.show]);
 
-  // Fetch research data when tab opens
+  // Fetch research data + synthesize once the tab opens.
+  // Research data is cached locally; synthesis is cached at App level keyed by topic.
   useEffect(() => {
     if (activeTab !== 'RESEARCH' || researchData || isLoadingResearch) return;
     setIsLoadingResearch(true);
@@ -94,6 +98,49 @@ export const DebateView: React.FC<DebateViewProps> = ({
       .catch((err) => console.error(err))
       .finally(() => setIsLoadingResearch(false));
   }, [activeTab, researchData, topic.title, topic.description, isLoadingResearch]);
+
+  // Once research data lands (and we have something to synthesize), generate the
+  // AI Synthesis card unless already cached. Sources passed in are the union of
+  // user-cited URLs and AI-surfaced research items, deduped through aggregateSources.
+  useEffect(() => {
+    if (activeTab !== 'RESEARCH') return;
+    if (synthesisCache || isLoadingSynthesis) return;
+    if (isLoadingResearch) return;
+    const aggregated = aggregateSources(comments, researchData);
+    if (aggregated.length === 0) return;
+
+    setIsLoadingSynthesis(true);
+    let cancelled = false;
+    const inputs = aggregated.slice(0, 40).map((s) => ({
+      hostname: s.hostname,
+      category: s.category,
+      title: s.title,
+      excerpt: s.excerpt,
+    }));
+    generateResearchSynthesis(topic.title, topic.description, inputs)
+      .then((synth) => {
+        if (cancelled) return;
+        if (synth.agree) onCacheSynthesis(topic.id, synth);
+      })
+      .catch((err) => console.error('Research synthesis failed', err))
+      .finally(() => {
+        if (!cancelled) setIsLoadingSynthesis(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeTab,
+    synthesisCache,
+    isLoadingSynthesis,
+    isLoadingResearch,
+    comments,
+    researchData,
+    topic.id,
+    topic.title,
+    topic.description,
+    onCacheSynthesis,
+  ]);
 
   const handleLoadMoreResearch = async () => {
     if (isLoadingMoreResearch || !researchData) return;
@@ -128,6 +175,67 @@ export const DebateView: React.FC<DebateViewProps> = ({
       setIsLoadingMoreResearch(false);
     }
   };
+
+  const handleToggleReadingList = useCallback(
+    (uri: string) => {
+      setReadingListByTopic((prev) => {
+        const list = prev[topic.id] ?? [];
+        const exists = list.includes(uri);
+        const next = exists ? list.filter((u) => u !== uri) : [uri, ...list];
+        return { ...prev, [topic.id]: next };
+      });
+    },
+    [topic.id]
+  );
+
+  const handleGenerateAll = useCallback(async () => {
+    if (isLoadingResearch || isLoadingSynthesis) return;
+    setIsLoadingResearch(true);
+    try {
+      const data = await generateTopicResearch(topic.title, topic.description);
+      setResearchData(data);
+      const aggregated = aggregateSources(comments, data);
+      if (aggregated.length > 0) {
+        setIsLoadingSynthesis(true);
+        try {
+          const synth = await generateResearchSynthesis(
+            topic.title,
+            topic.description,
+            aggregated.slice(0, 40).map((s) => ({
+              hostname: s.hostname,
+              category: s.category,
+              title: s.title,
+              excerpt: s.excerpt,
+            }))
+          );
+          if (synth.agree) onCacheSynthesis(topic.id, synth);
+        } finally {
+          setIsLoadingSynthesis(false);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to generate research', err);
+      setToast({ show: true, message: 'Could not generate research right now.', type: 'error' });
+    } finally {
+      setIsLoadingResearch(false);
+    }
+  }, [
+    isLoadingResearch,
+    isLoadingSynthesis,
+    topic.id,
+    topic.title,
+    topic.description,
+    comments,
+    onCacheSynthesis,
+  ]);
+
+  const handleAddSourceStub = useCallback((_uri: string) => {
+    setToast({
+      show: true,
+      message: 'URL ingestion coming soon — added URLs aren’t persisted yet.',
+      type: 'info',
+    });
+  }, []);
 
   const tabCounts = useMemo(
     () => ({
@@ -243,10 +351,18 @@ export const DebateView: React.FC<DebateViewProps> = ({
           />
         ) : activeTab === 'RESEARCH' ? (
           <ResearchTab
+            topic={topic}
+            comments={comments}
             researchData={researchData}
             isLoadingResearch={isLoadingResearch}
+            isLoadingSynthesis={isLoadingSynthesis}
             isLoadingMoreResearch={isLoadingMoreResearch}
-            onLoadMore={handleLoadMoreResearch}
+            synthesisCache={synthesisCache}
+            readingListUris={readingListByTopic[topic.id] ?? []}
+            onToggleReadingList={handleToggleReadingList}
+            onLoadMoreResearch={handleLoadMoreResearch}
+            onGenerateAll={handleGenerateAll}
+            onAddSourceStub={handleAddSourceStub}
           />
         ) : (
           <ParticipantsPlaceholder participantCount={tabCounts.PARTICIPANTS} />
@@ -271,131 +387,6 @@ export const DebateView: React.FC<DebateViewProps> = ({
           targetId={reportTarget.targetId}
           targetContent={reportTarget.targetContent}
         />
-      )}
-    </div>
-  );
-};
-
-interface ResearchTabProps {
-  researchData: TopicResearchData | null;
-  isLoadingResearch: boolean;
-  isLoadingMoreResearch: boolean;
-  onLoadMore: () => void;
-}
-
-const renderResearchCard = (item: ResearchItem, index: number) => (
-  <a
-    key={index}
-    href={item.uri}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="group flex h-full cursor-pointer flex-col rounded-12 border border-rule bg-cream p-4 no-underline shadow-sm transition-all hover:border-oxford/30 hover:shadow-md"
-  >
-    <div className="mb-2 flex items-start justify-between gap-2">
-      <h4 className="line-clamp-2 font-serif text-[15px] font-medium leading-tight text-ink transition-colors group-hover:text-oxford">
-        {item.title}
-      </h4>
-      <IconExternal className="h-4 w-4 flex-shrink-0 text-ink-3 transition-colors group-hover:text-oxford" />
-    </div>
-    <p className="mb-3 flex-grow font-sans text-[12.5px] leading-[1.55] text-ink-2">
-      {item.snippet}
-    </p>
-    <div className="flex items-center gap-1.5 border-t border-rule pt-2 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3">
-      <IconGlobe className="h-3 w-3" />
-      <span className="truncate">{item.sourceName || 'Web Source'}</span>
-    </div>
-  </a>
-);
-
-const ResearchTab: React.FC<ResearchTabProps> = ({
-  researchData,
-  isLoadingResearch,
-  isLoadingMoreResearch,
-  onLoadMore,
-}) => {
-  return (
-    <div className="px-4 pb-12 pt-6 md:px-8">
-      <div className="mb-6 flex items-start gap-3 rounded-12 border border-oxford/20 bg-oxford/5 p-5">
-        <div className="rounded-8 bg-cream p-2 text-oxford shadow-sm">
-          <IconBook className="h-5 w-5" />
-        </div>
-        <div>
-          <h3 className="mb-1 font-serif text-[16px] font-medium text-ink">Topic Research Hub</h3>
-          <p className="font-sans text-[13px] leading-[1.55] text-ink-2">
-            Explore reliable, AI-curated sources covering every side of this debate.
-          </p>
-        </div>
-      </div>
-
-      {isLoadingResearch && !researchData ? (
-        <div className="mx-auto flex max-w-lg flex-col items-center gap-4 py-16 text-center">
-          <IconSparkles className="h-10 w-10 animate-spin text-oxford" />
-          <h3 className="font-serif text-[16px] font-medium text-ink">Curating research…</h3>
-          <p className="font-sans text-[13px] text-ink-3">
-            Verbo AI is searching for the most up-to-date sources.
-          </p>
-        </div>
-      ) : researchData ? (
-        <>
-          <div className="mb-4 grid grid-cols-1 gap-4 border-b border-rule pb-3 lg:grid-cols-3">
-            <h3 className="font-serif text-[14px] font-medium text-oxford">Supporting Perspectives</h3>
-            <h3 className="font-serif text-[14px] font-medium text-ink-2">Objective Overview</h3>
-            <h3 className="font-serif text-[14px] font-medium text-stance-against">Opposing Perspectives</h3>
-          </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="flex flex-col gap-3">
-              {(researchData.for?.length ?? 0) > 0 ? (
-                researchData.for!.map((item, idx) => renderResearchCard(item, idx))
-              ) : (
-                <div className="rounded-12 border border-dashed border-rule px-4 py-8 text-center font-sans text-[12px] italic text-ink-3">
-                  No specific sources found.
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col gap-3">
-              {(researchData.neutral?.length ?? 0) > 0 ? (
-                researchData.neutral!.map((item, idx) => renderResearchCard(item, idx + 100))
-              ) : (
-                <div className="rounded-12 border border-dashed border-rule px-4 py-8 text-center font-sans text-[12px] italic text-ink-3">
-                  No specific sources found.
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col gap-3">
-              {(researchData.against?.length ?? 0) > 0 ? (
-                researchData.against!.map((item, idx) => renderResearchCard(item, idx + 200))
-              ) : (
-                <div className="rounded-12 border border-dashed border-rule px-4 py-8 text-center font-sans text-[12px] italic text-ink-3">
-                  No specific sources found.
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="mt-8 flex justify-center">
-            <button
-              type="button"
-              onClick={onLoadMore}
-              disabled={isLoadingMoreResearch}
-              className="inline-flex items-center gap-2 rounded-full border border-rule bg-cream px-5 py-2.5 font-sans text-[12.5px] font-semibold text-ink-2 shadow-sm transition-all hover:border-oxford/30 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isLoadingMoreResearch ? (
-                <>
-                  <IconSparkles className="h-3.5 w-3.5 animate-spin" />
-                  Finding more sources…
-                </>
-              ) : (
-                <>
-                  <IconPlus className="h-3.5 w-3.5" />
-                  Find more sources
-                </>
-              )}
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="py-16 text-center font-sans text-[13px] italic text-ink-3">
-          Unable to load research data. Please try again later.
-        </div>
       )}
     </div>
   );

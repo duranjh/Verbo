@@ -1,7 +1,7 @@
 
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AIAnalysis, FactRating, TopicResearchData } from "../types";
+import { AIAnalysis, FactRating, ResearchSynthesis, SourceCategory, TopicResearchData } from "../types";
 
 // Initialize Gemini Client
 // Note: In a real app, ensure process.env.API_KEY is available.
@@ -523,5 +523,154 @@ export const generateTopicResearch = async (title: string, description: string, 
     } catch (e) {
         console.error("Error generating topic research", e);
         return { for: [], neutral: [], against: [] };
+    }
+};
+
+const SYNTHESIS_FALLBACK: ResearchSynthesis = {
+    agree: '',
+    disagree: '',
+    underexplored: '',
+    agreementPct: 0,
+    disagreementPct: 0,
+    underexploredPct: 0,
+    confidence: 'low',
+};
+
+export interface SynthesisSource {
+    hostname: string;
+    category: SourceCategory;
+    title?: string;
+    excerpt?: string;
+}
+
+export const generateResearchSynthesis = async (
+    title: string,
+    description: string,
+    sources: SynthesisSource[]
+): Promise<ResearchSynthesis> => {
+    if (sources.length === 0) {
+        return SYNTHESIS_FALLBACK;
+    }
+
+    try {
+        const sourceList = sources
+            .slice(0, 40)
+            .map((s, i) => {
+                const head = `[${i + 1}] ${s.hostname} · ${s.category}`;
+                const titleLine = s.title ? ` · ${s.title}` : '';
+                const excerptLine = s.excerpt ? `\n    ${s.excerpt}` : '';
+                return `${head}${titleLine}${excerptLine}`;
+            })
+            .join('\n');
+
+        const prompt = `
+Act as an editorial researcher synthesizing a body of sources covering the debate: "${title}".
+Context: "${description}".
+
+Below is the list of sources cited or surfaced in the debate. Each source is labeled with its category.
+
+${sourceList}
+
+Produce three short, evidence-grounded takeaways:
+1. Where the sources broadly AGREE — the consensus point.
+2. Where they DISAGREE — the genuine point of contention. Note which categories of sources lean which way (e.g., "academic sources skew skeptical, industry sources optimistic").
+3. What is UNDEREXPLORED — a question or angle the sources collectively neglect.
+
+Then estimate three percentages summing to 100:
+- agreementPct: how much of the body of sources broadly agrees on the consensus point.
+- disagreementPct: how much explicitly takes the contrary side.
+- underexploredPct: the share of sources that are tangential or that don't engage the central question.
+
+Optionally, fill agreeAcademicSupportPct with the share of ACADEMIC sources that support the consensus point, and underexploredSourceCount with the integer number of sources that touch the underexplored angle.
+
+Finally, rate confidence in this synthesis: low / medium-low / medium / medium-high / high.
+
+Each takeaway must be ONE sentence, max 35 words. No hedging filler. No "the sources suggest" preambles — state the substance.
+
+Return strict JSON. No prose outside the JSON.
+`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                maxOutputTokens: 800,
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        agree: { type: Type.STRING },
+                        disagree: { type: Type.STRING },
+                        underexplored: { type: Type.STRING },
+                        agreementPct: { type: Type.NUMBER },
+                        disagreementPct: { type: Type.NUMBER },
+                        underexploredPct: { type: Type.NUMBER },
+                        agreeAcademicSupportPct: { type: Type.NUMBER },
+                        underexploredSourceCount: { type: Type.NUMBER },
+                        confidence: { type: Type.STRING },
+                    },
+                },
+            },
+        });
+
+        let text = response.text;
+        if (!text) {
+            return SYNTHESIS_FALLBACK;
+        }
+
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            text = text.substring(firstBrace, lastBrace + 1);
+        }
+
+        const parsed = JSON.parse(text) as Partial<ResearchSynthesis>;
+
+        const clampPct = (n: unknown): number => {
+            const v = typeof n === 'number' && Number.isFinite(n) ? n : 0;
+            return Math.max(0, Math.min(100, Math.round(v)));
+        };
+
+        let agreementPct = clampPct(parsed.agreementPct);
+        let disagreementPct = clampPct(parsed.disagreementPct);
+        let underexploredPct = clampPct(parsed.underexploredPct);
+        const sum = agreementPct + disagreementPct + underexploredPct;
+        if (sum > 0 && sum !== 100) {
+            // Normalize to 100 while preserving ratios.
+            agreementPct = Math.round((agreementPct / sum) * 100);
+            disagreementPct = Math.round((disagreementPct / sum) * 100);
+            underexploredPct = Math.max(0, 100 - agreementPct - disagreementPct);
+        }
+
+        const allowedConfidence: ResearchSynthesis['confidence'][] = [
+            'low', 'medium-low', 'medium', 'medium-high', 'high',
+        ];
+        const confidence = allowedConfidence.includes(
+            parsed.confidence as ResearchSynthesis['confidence']
+        )
+            ? (parsed.confidence as ResearchSynthesis['confidence'])
+            : 'medium';
+
+        return {
+            agree: typeof parsed.agree === 'string' ? parsed.agree.trim() : '',
+            disagree: typeof parsed.disagree === 'string' ? parsed.disagree.trim() : '',
+            underexplored: typeof parsed.underexplored === 'string' ? parsed.underexplored.trim() : '',
+            agreementPct,
+            disagreementPct,
+            underexploredPct,
+            agreeAcademicSupportPct:
+                typeof parsed.agreeAcademicSupportPct === 'number'
+                    ? clampPct(parsed.agreeAcademicSupportPct)
+                    : undefined,
+            underexploredSourceCount:
+                typeof parsed.underexploredSourceCount === 'number'
+                    ? Math.max(0, Math.round(parsed.underexploredSourceCount))
+                    : undefined,
+            confidence,
+        };
+    } catch (e) {
+        console.error('Error generating research synthesis', e);
+        return SYNTHESIS_FALLBACK;
     }
 };

@@ -150,6 +150,42 @@ export interface TopicResearchData {
   against: ResearchItem[];
 }
 
+// Research tab — source categorization & aggregation (chunk #5).
+// Categories are properties of the source itself (its publisher), NOT of an
+// argument's stance. Sources are not partisan; arguments are.
+export type SourceCategory = 'NEWS' | 'ACADEMIC' | 'GOVERNMENT' | 'THINK_TANK' | 'OP_ED';
+export type CredibilityLevel = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface AggregatedSource {
+  uri: string;
+  hostname: string;
+  title?: string;
+  excerpt?: string;
+  author?: string;
+  publishedAt?: number;
+  category: SourceCategory;
+  credibility: CredibilityLevel;
+  citedByCount: number;
+  citedBy: string[];           // comment IDs
+  addedBy?: string;            // first commenter who added it (display name)
+  addedByVerified?: boolean;
+  firstCitedAt?: number;
+  isFromAI: boolean;           // surfaced by AI synthesis grounding
+  isFromCitation: boolean;     // referenced by at least one comment
+}
+
+export interface ResearchSynthesis {
+  agree: string;
+  disagree: string;
+  underexplored: string;
+  agreementPct: number;
+  disagreementPct: number;
+  underexploredPct: number;
+  agreeAcademicSupportPct?: number;
+  underexploredSourceCount?: number;
+  confidence: 'low' | 'medium-low' | 'medium' | 'medium-high' | 'high';
+}
+
 // Reporting Types
 export type ReportTargetType = 'TOPIC' | 'ARGUMENT' | 'REBUTTAL' | 'USER';
 
