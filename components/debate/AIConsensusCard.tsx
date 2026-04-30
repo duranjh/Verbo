@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Comment, FactRating, Stance, Topic } from '../../types';
-import { generateConsensusSummary } from '../../services/gemini';
+import { generateConsensusSummary } from '../../services/ai';
 import { IconSparkles } from '../Icons';
 
 interface AIConsensusCardProps {

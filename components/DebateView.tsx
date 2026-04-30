@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Topic, Comment, Stance, ReportData, ResearchSynthesis, TopicResearchData } from '../types';
-import { generateResearchSynthesis, generateTopicResearch } from '../services/gemini';
+import { generateResearchSynthesis, generateTopicResearch } from '../services/ai';
 import { aggregateSources } from '../lib/aggregateSources';
 import {
   IconBell,

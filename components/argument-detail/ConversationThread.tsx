@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Comment, Stance, FactRating, AIAnalysis, Attachment } from '../../types';
-import { verifyStatement } from '../../services/gemini';
+import { verifyStatement } from '../../services/ai';
 import { Avatar } from '../ui';
 import { IconChevronDown, IconCheck, IconSparkles } from '../Icons';
 import { ReplyCard } from './ReplyCard';
