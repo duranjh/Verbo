@@ -11,7 +11,7 @@ import { TopAppBar } from './components/TopAppBar';
 import { DiscoverRail } from './components/home/DiscoverRail';
 import { MagazineGrid } from './components/home/MagazineGrid';
 import { MobileTabBar } from './components/ui';
-import { Topic, Comment, Stance, FactRating, DebateType, PrivacyStatus, UserRole, Notification, UserProfile } from './types';
+import { Topic, Comment, Stance, FactRating, DebateType, PrivacyStatus, UserRole, Notification, UserProfile, ResearchSynthesis } from './types';
 import { IconSearch, IconBell, IconUser, IconSparkles, IconChevronRight, IconClose, IconStar, IconArrowLeft, IconAdd, IconHome } from './components/Icons';
 import { Toast } from './components/Toast';
 import { searchDebates } from './services/gemini';
@@ -345,6 +345,7 @@ const App: React.FC = () => {
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
   const [comments, setComments] = useState(MOCK_COMMENTS);
   const [consensusByTopic, setConsensusByTopic] = useState<Record<string, { text: string; generatedAt: number }>>({});
+  const [researchSynthesisByTopic, setResearchSynthesisByTopic] = useState<Record<string, { synthesis: ResearchSynthesis; generatedAt: number }>>({});
   
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -744,6 +745,13 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleSetResearchSynthesis = (topicId: string, synthesis: ResearchSynthesis) => {
+    setResearchSynthesisByTopic(prev => ({
+      ...prev,
+      [topicId]: { synthesis, generatedAt: Date.now() }
+    }));
+  };
+
   const handleSwitchCommentStance = (commentId: string, newStance: Stance) => {
     if (!activeTopic) return;
     const topicComments = comments[activeTopic.id] || [];
@@ -1101,6 +1109,8 @@ const App: React.FC = () => {
           onOpenProfile={() => setIsAccountSidebarOpen(true)}
           consensusCache={consensusByTopic[activeTopic.id]}
           onCacheConsensus={handleSetConsensus}
+          synthesisCache={researchSynthesisByTopic[activeTopic.id]}
+          onCacheSynthesis={handleSetResearchSynthesis}
           onSwitchStance={handleSwitchCommentStance}
         />
       ) : (
