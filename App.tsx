@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TopicList } from './components/TopicList';
 import { DebateView } from './components/DebateView';
-import { CommentDetailModal } from './components/CommentDetailModal';
+import { ArgumentDetail } from './components/ArgumentDetail';
 import { CreateTopicModal } from './components/CreateTopicModal';
 import { ManageParticipantsModal } from './components/ManageParticipantsModal';
 import { NotificationSidebar } from './components/NotificationSidebar';
@@ -1537,13 +1537,16 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <CommentDetailModal 
-        comment={selectedComment} 
+      <ArgumentDetail
+        comment={selectedComment}
+        topicComments={comments[activeTopic?.id ?? ''] ?? []}
+        topicTitle={activeTopic?.title || ''}
+        topicTag={activeTopic?.tags?.[0]}
+        currentUserInitials={`${userProfile.firstName[0] ?? ''}${userProfile.lastName[0] ?? ''}`.toUpperCase() || 'YO'}
         onClose={() => setSelectedComment(null)}
         onReply={handleReply}
-        onAddComment={handleAddComment}
         onLikeComment={handleLikeComment}
-        topicTitle={activeTopic?.title || ''}
+        onSelectComment={setSelectedComment}
         canParticipate={canParticipate}
         isDebateClosed={!!isDebateClosed}
         areAiToolsEnabled={activeTopic?.areAiToolsEnabled ?? true}
