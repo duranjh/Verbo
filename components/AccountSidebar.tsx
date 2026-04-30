@@ -134,9 +134,12 @@ export const AccountSidebar: React.FC<AccountSidebarProps> = ({
             )}
 
             {showVerificationModal && (
-                <OccupationVerificationModal 
+                <OccupationVerificationModal
                     onClose={() => setShowVerificationModal(false)}
                     onSubmit={handleVerificationSubmit}
+                    isPending={user.isVerificationPending}
+                    currentOccupation={user.occupation}
+                    verificationDate={user.verificationDate}
                 />
             )}
 
@@ -323,7 +326,7 @@ export const AccountSidebar: React.FC<AccountSidebarProps> = ({
                                                 <IconCheck className="w-3 h-3" />
                                             </button>
                                         ) : user.isVerificationPending ? (
-                                            <button 
+                                            <button
                                                 type="button"
                                                 disabled
                                                 className="w-full py-2 bg-slate-100 border border-slate-200 text-slate-500 rounded-lg text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed"
