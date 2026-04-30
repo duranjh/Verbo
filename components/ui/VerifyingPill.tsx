@@ -4,6 +4,8 @@ interface VerifyingPillProps {
   variant?: 'default' | 'elapsed-time' | 'sources-count';
   elapsedSeconds?: number;
   sourcesCount?: number;
+  /** Override the default text. When set, takes precedence over variant defaults — e.g. "Under review" for the occupation verification pending pill. */
+  label?: string;
   className?: string;
 }
 
@@ -11,6 +13,7 @@ export const VerifyingPill: React.FC<VerifyingPillProps> = ({
   variant = 'default',
   elapsedSeconds,
   sourcesCount,
+  label: labelOverride,
   className = '',
 }) => {
   let label = 'Verifying';
@@ -19,6 +22,7 @@ export const VerifyingPill: React.FC<VerifyingPillProps> = ({
   } else if (variant === 'sources-count' && typeof sourcesCount === 'number') {
     label = `Verifying · checking ${sourcesCount} source${sourcesCount === 1 ? '' : 's'}`;
   }
+  if (labelOverride) label = labelOverride;
 
   return (
     <span
