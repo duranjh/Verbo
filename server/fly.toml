@@ -1,0 +1,37 @@
+# Fly.io config for verbo-backend.
+# Deploy commands live in server/README.md — do NOT auto-deploy from this file.
+
+app = 'verbo-backend'
+primary_region = 'iad'
+
+[build]
+
+[env]
+  PORT = '8787'
+  NODE_ENV = 'production'
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  # Reasoning-model fact-checks can run 30–60s. Idle timeout extended so the
+  # client connection survives the full call without an edge-proxy reset.
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 50
+    soft_limit = 25
+
+[[http_service.checks]]
+  grace_period = '10s'
+  interval = '30s'
+  method = 'GET'
+  timeout = '5s'
+  path = '/health'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '256mb'
