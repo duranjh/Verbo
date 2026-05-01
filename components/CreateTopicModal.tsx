@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Topic, DebateType, PrivacyStatus, DebateFormat } from '../types';
 import { IconClose, IconSparkles, IconLock } from './Icons';
-import { suggestTags } from '../services/gemini';
+import { suggestTags } from '../services/ai';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from './ui/Modal';
 import { Button } from './ui/Button';
 import { SegmentedToggle } from './ui/SegmentedToggle';

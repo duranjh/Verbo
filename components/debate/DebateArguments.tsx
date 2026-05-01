@@ -13,7 +13,7 @@ import {
   verifyStatement,
   enhanceArgument,
   suggestSupportingSources,
-} from '../../services/gemini';
+} from '../../services/ai';
 import { ArgumentCompose } from './ArgumentCompose';
 import { ArgumentList, SortOption, ViewMode } from './ArgumentList';
 import { ArgumentSidebar, MobileFilterTrigger } from './ArgumentSidebar';

@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { IconMic, IconClose } from './Icons';
-import { transcribeAudio } from '../services/gemini';
+import { transcribeAudio } from '../services/ai';
 
 interface VoiceInputProps {
     onTextReceived: (text: string) => void;

@@ -14,7 +14,7 @@ import { MobileTabBar } from './components/ui';
 import { Topic, Comment, Stance, FactRating, DebateType, PrivacyStatus, UserRole, Notification, UserProfile, ResearchSynthesis } from './types';
 import { IconSearch, IconBell, IconUser, IconSparkles, IconChevronRight, IconClose, IconStar, IconArrowLeft, IconAdd, IconHome } from './components/Icons';
 import { Toast } from './components/Toast';
-import { searchDebates } from './services/gemini';
+import { searchDebates } from './services/ai';
 
 // Helper to calculate stats matching DebateView logic (Top-level only, filtered by rating)
 const calculateTopicStats = (comments: Comment[]) => {
