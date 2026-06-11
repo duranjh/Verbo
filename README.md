@@ -33,10 +33,10 @@ Verbo was built as a learning MVP and is open-sourced as-is. It is **not activel
 ## Architecture
 
 ```
-┌──────────────────┐      POST /api/*      ┌──────────────────┐      ┌─────────────┐
-│  React client     │ ───────────────────► │  verbo-backend    │ ───► │  OpenAI API  │
-│  (Vite, Tailwind) │ ◄─────────────────── │  (Hono proxy)     │      │  + web_search │
-└──────────────────┘                       └──────────────────┘      └─────────────┘
+┌────────────────────┐       POST /api/*       ┌────────────────────┐      ┌────────────────┐
+│  React client      │ ──────────────────────► │  verbo-backend     │ ───► │  OpenAI API    │
+│  (Vite, Tailwind)  │ ◄────────────────────── │  (Hono proxy)      │      │  + web_search  │
+└────────────────────┘                         └────────────────────┘      └────────────────┘
 ```
 
 - **Frontend** (`/`): React 19 + Vite + Tailwind. Ships with rich mock data and keeps all state in memory — there's no database; this is a product prototype, not a hosted service.
