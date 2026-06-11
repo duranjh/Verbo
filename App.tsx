@@ -14,7 +14,7 @@ import { MobileTabBar } from './components/ui';
 import { Topic, Comment, Stance, FactRating, DebateType, PrivacyStatus, UserRole, Notification, UserProfile, ResearchSynthesis } from './types';
 import { IconSearch, IconBell, IconUser, IconSparkles, IconChevronRight, IconClose, IconStar, IconArrowLeft, IconAdd, IconHome } from './components/Icons';
 import { Toast } from './components/Toast';
-import { searchDebates } from './services/ai';
+import { searchDebates, checkProxyHealth } from './services/ai';
 
 // Helper to calculate stats matching DebateView logic (Top-level only, filtered by rating)
 const calculateTopicStats = (comments: Comment[]) => {
@@ -400,6 +400,15 @@ const App: React.FC = () => {
   // In a real app, this would come from Auth Context
   const [userAge, setUserAge] = useState<number>(25); // Default > 18
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(true);
+
+  // AI backend availability — fact-checking, research, and search degrade
+  // gracefully when the proxy is down, but first-run users should know why.
+  const [isAiOffline, setIsAiOffline] = useState(false);
+  const [isAiOfflineBannerDismissed, setIsAiOfflineBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    checkProxyHealth().then((ok) => setIsAiOffline(!ok));
+  }, []);
 
   // Calculate closure status for active topic
   const isDebateClosed = activeTopic?.type === DebateType.TIMED && activeTopic.closesAt && Date.now() > activeTopic.closesAt;
@@ -1045,6 +1054,21 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900 relative">
+      {isAiOffline && !isAiOfflineBannerDismissed && (
+          <div className="flex items-center justify-center gap-3 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800" role="status">
+            <span>
+              AI features are offline — start the backend server to enable fact-checking and research (see README).
+            </span>
+            <button
+              onClick={() => setIsAiOfflineBannerDismissed(true)}
+              className="p-1 rounded-full hover:bg-amber-100 text-amber-600"
+              aria-label="Dismiss AI offline notice"
+            >
+              <IconClose className="w-4 h-4" />
+            </button>
+          </div>
+      )}
+
       {/* Global Notifications */}
       {notification && (
           <Toast 

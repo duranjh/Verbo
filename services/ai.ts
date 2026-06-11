@@ -46,6 +46,19 @@ const SYNTHESIS_FALLBACK: ResearchSynthesis = {
   confidence: 'low',
 };
 
+// Pings the proxy's /health endpoint so the app can tell the user when AI
+// features are offline (e.g. cloned the repo but didn't start the server).
+export const checkProxyHealth = async (timeoutMs = 3000): Promise<boolean> => {
+  try {
+    const res = await fetch(`${PROXY_URL}/health`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+};
+
 export const transcribeAudio = async (audioBase64: string, mimeType: string): Promise<string> => {
   const res = await fetch(`${PROXY_URL}/api/transcribe`, {
     method: 'POST',

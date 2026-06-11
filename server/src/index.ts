@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { allowedOrigins, isAllowedOrigin, originAllowlist } from './middleware/allowlist.js';
 import { requestLogger } from './middleware/logger.js';
+import { rateLimit } from './middleware/rate-limit.js';
 import { verifyRoute } from './routes/verify.js';
 import { suggestSourcesRoute } from './routes/suggest-sources.js';
 import { consensusRoute } from './routes/consensus.js';
@@ -31,7 +32,11 @@ app.use(
 );
 
 app.use('/api/*', originAllowlist);
+app.use('/api/*', rateLimit);
 
+// /health is open to any origin: it returns no data beyond liveness, and the
+// client pings it cross-origin to decide whether to show the AI-offline banner.
+app.use('/health', cors());
 app.get('/health', (c) => c.json({ ok: true }));
 
 app.route('/api/verify', verifyRoute);
