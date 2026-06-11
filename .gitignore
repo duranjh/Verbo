@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local-only project folders (not part of the open-source release)
+design/
+Verbo (Backup)/
+.claude/
